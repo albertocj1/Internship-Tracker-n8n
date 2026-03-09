@@ -617,7 +617,7 @@ body::after {
 </div>
 
 <script>
-  // ── CONFIG ── Replace with your actual n8n webhook URL
+  // ── CONFIG ── n8n Webhook URL
   const WEBHOOK_URL = 'https://primary-production-a810.up.railway.app/webhook-test/fbfa7872-0567-446f-87b7-39b9c1f7652c';
 
   // ── CLOCK ──
@@ -672,8 +672,8 @@ body::after {
     try {
       await fetch(WEBHOOK_URL, {
         method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' // MUST include this
+        },
         body: JSON.stringify(payload)
       });
 
