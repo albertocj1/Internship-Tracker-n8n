@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intern Attendance Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Cabinet+Grotesk:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #060a0f;
+  --surface: #0d1117;
+  --surface2: #141b24;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --text: #e8edf2;
+  --muted: rgba(232,237,242,0.45);
+  --dim: rgba(232,237,242,0.2);
+  --green: #00e896;
+  --green-dim: rgba(0,232,150,0.12);
+  --green-glow: rgba(0,232,150,0.25);
+  --blue: #3b9eff;
+  --blue-dim: rgba(59,158,255,0.12);
+  --orange: #ff8c42;
+  --orange-dim: rgba(255,140,66,0.12);
+  --red: #ff4d6a;
+  --red-dim: rgba(255,77,106,0.1);
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Cabinet Grotesk', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Background grid */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,232,150,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,232,150,0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Glow orbs */
+body::after {
+  content: '';
+  position: fixed;
+  top: -200px; left: 50%;
+  transform: translateX(-50%);
+  width: 800px; height: 500px;
+  background: radial-gradient(ellipse, rgba(0,232,150,0.06) 0%, transparent 65%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.app {
+  width: 100%;
+  max-width: 480px;
+  position: relative;
+  z-index: 1;
+  animation: fadeUp 0.6s cubic-bezier(0.22,1,0.36,1) both;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── TOP BAR ── */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.logo-icon {
+  width: 32px; height: 32px;
+  background: var(--green);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.logo-icon svg { width: 18px; height: 18px; stroke: #060a0f; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.logo-text {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.logo-text span { color: var(--green); }
+
+.live-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: var(--green-dim);
+  border: 1px solid rgba(0,232,150,0.2);
+  border-radius: 100px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--green);
+  font-weight: 500;
+}
+.live-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse 1.6s ease infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+
+/* ── DATE/TIME HERO ── */
+.time-hero {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  padding: 28px 28px 24px;
+  margin-bottom: 16px;
+  position: relative;
+  overflow: hidden;
+}
+.time-hero::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--green), transparent);
+  opacity: 0.5;
+}
+.time-display {
+  font-family: 'DM Mono', monospace;
+  font-size: clamp(42px, 10vw, 56px);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  line-height: 1;
+  margin-bottom: 8px;
+}
+.time-display .colon {
+  color: var(--green);
+  animation: blink 1s step-end infinite;
+}
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+
+.date-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.date-text {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 500;
+}
+.weekday-badge {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--green);
+  background: var(--green-dim);
+  border: 1px solid rgba(0,232,150,0.15);
+  padding: 3px 10px;
+  border-radius: 100px;
+}
+
+/* ── INTERN ID INPUT ── */
+.id-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+  transition: border-color 0.2s;
+}
+.id-section:focus-within { border-color: rgba(0,232,150,0.3); }
+
+.id-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-bottom: 10px;
+}
+.id-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.id-prefix {
+  font-family: 'DM Mono', monospace;
+  font-size: 14px;
+  color: var(--green);
+  font-weight: 500;
+  background: var(--green-dim);
+  border: 1px solid rgba(0,232,150,0.2);
+  padding: 10px 14px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+.id-input {
+  flex: 1;
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-family: 'DM Mono', monospace;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  letter-spacing: 0.06em;
+}
+.id-input::placeholder { color: var(--dim); font-weight: 300; }
+.id-input:focus {
+  border-color: rgba(0,232,150,0.4);
+  box-shadow: 0 0 0 3px rgba(0,232,150,0.08);
+}
+
+/* ── ACTION BUTTONS ── */
+.action-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.action-btn {
+  position: relative;
+  padding: 22px 20px;
+  border-radius: 16px;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.22,1,0.36,1);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+  text-align: left;
+}
+.action-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.22s;
+  border-radius: inherit;
+}
+.action-btn:hover { transform: translateY(-2px); }
+.action-btn:active { transform: translateY(0) scale(0.98); }
+
+.btn-timein { border-color: rgba(0,232,150,0.25); }
+.btn-timein::before { background: var(--green-dim); }
+.btn-timein:hover { border-color: rgba(0,232,150,0.5); box-shadow: 0 8px 32px rgba(0,232,150,0.12); }
+.btn-timein:hover::before { opacity: 1; }
+
+.btn-timeout { border-color: rgba(59,158,255,0.25); }
+.btn-timeout::before { background: var(--blue-dim); }
+.btn-timeout:hover { border-color: rgba(59,158,255,0.5); box-shadow: 0 8px 32px rgba(59,158,255,0.12); }
+.btn-timeout:hover::before { opacity: 1; }
+
+.btn-icon {
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+.btn-timein .btn-icon { background: var(--green-dim); }
+.btn-timeout .btn-icon { background: var(--blue-dim); }
+.btn-icon svg { width: 20px; height: 20px; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+.btn-timein .btn-icon svg { stroke: var(--green); }
+.btn-timeout .btn-icon svg { stroke: var(--blue); }
+
+.btn-label {
+  font-size: 16px;
+  font-weight: 800;
+  position: relative;
+  z-index: 1;
+}
+.btn-timein .btn-label { color: var(--green); }
+.btn-timeout .btn-label { color: var(--blue); }
+
+.btn-sub {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  position: relative;
+  z-index: 1;
+  letter-spacing: 0.04em;
+}
+
+/* ── STATUS CARD ── */
+.status-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+  display: none;
+  animation: slideIn 0.4s cubic-bezier(0.22,1,0.36,1) both;
+}
+.status-card.show { display: block; }
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.status-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.status-avatar {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+.status-name { font-size: 14px; font-weight: 700; }
+.status-id { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); }
+
+.status-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.stat-item {
+  background: var(--surface2);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.stat-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-bottom: 5px;
+}
+.stat-val {
+  font-family: 'DM Mono', monospace;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+}
+.stat-val.green { color: var(--green); }
+.stat-val.blue  { color: var(--blue); }
+.stat-val.orange{ color: var(--orange); }
+.stat-val.red   { color: var(--red); }
+
+.status-badge-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 100px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+}
+.badge-green  { background: var(--green-dim);  border: 1px solid rgba(0,232,150,0.2);  color: var(--green);  }
+.badge-blue   { background: var(--blue-dim);   border: 1px solid rgba(59,158,255,0.2); color: var(--blue);   }
+.badge-orange { background: var(--orange-dim); border: 1px solid rgba(255,140,66,0.2); color: var(--orange); }
+.badge-red    { background: var(--red-dim);    border: 1px solid rgba(255,77,106,0.2); color: var(--red);    }
+
+/* ── TODAY'S LOG ── */
+.log-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px 20px;
+}
+.log-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.log-title {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.log-count {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+}
+.log-empty {
+  text-align: center;
+  padding: 20px;
+  color: var(--dim);
+  font-size: 13px;
+  font-family: 'DM Mono', monospace;
+}
+
+.log-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: var(--surface2);
+  border-radius: 10px;
+  margin-bottom: 8px;
+  animation: slideIn 0.3s ease both;
+}
+.log-item:last-child { margin-bottom: 0; }
+.log-left { display: flex; align-items: center; gap: 10px; }
+.log-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.log-intern { font-size: 13px; font-weight: 700; }
+.log-dept { font-size: 11px; color: var(--muted); }
+.log-right { text-align: right; }
+.log-time { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text); }
+.log-action { font-size: 10px; color: var(--muted); text-align: right; }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed;
+  bottom: 32px; left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 12px 24px;
+  border-radius: 100px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  z-index: 200;
+  opacity: 0;
+  transition: opacity 0.3s, transform 0.3s;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+/* ── LOADING SPINNER ── */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner {
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,0.15);
+  border-top-color: var(--green);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: none;
+}
+.loading .spinner { display: block; }
+.loading .btn-label { opacity: 0.5; }
+
+@media (max-width: 400px) {
+  .time-display { font-size: 38px; }
+  .action-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </div>
+      <div class="logo-text">Intern<span>Track</span></div>
+    </div>
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      Live
+    </div>
+  </div>
+
+  <!-- CLOCK HERO -->
+  <div class="time-hero">
+    <div class="time-display" id="clockDisplay">
+      <span id="hh">00</span><span class="colon">:</span><span id="mm">00</span><span class="colon">:</span><span id="ss">00</span>
+    </div>
+    <div class="date-row">
+      <div class="date-text" id="dateDisplay">Loading…</div>
+      <div class="weekday-badge" id="weekdayBadge">---</div>
+    </div>
+  </div>
+
+  <!-- INTERN ID -->
+  <div class="id-section">
+    <div class="id-label">// Intern ID</div>
+    <div class="id-input-wrap">
+      <div class="id-prefix">id</div>
+      <input class="id-input" id="internId" type="text" placeholder="e.g. 3023452" maxlength="12">
+    </div>
+  </div>
+
+  <!-- ACTION BUTTONS -->
+  <div class="action-grid">
+    <button class="action-btn btn-timein" id="btnTimeIn" onclick="handleAction('time_in')">
+      <div class="btn-icon">
+        <svg viewBox="0 0 24 24"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></svg>
+      </div>
+      <div class="btn-label">Time In</div>
+      <div class="btn-sub">Log arrival time</div>
+      <div class="spinner" id="spinnerIn"></div>
+    </button>
+    <button class="action-btn btn-timeout" id="btnTimeOut" onclick="handleAction('time_out')">
+      <div class="btn-icon">
+        <svg viewBox="0 0 24 24"><polyline points="8 3 3 3 3 8"/><line x1="20" y1="4" x2="3" y2="21"/><polyline points="3 16 3 21 8 21"/><line x1="9" y1="15" x2="3" y2="21"/></svg>
+      </div>
+      <div class="btn-label">Time Out</div>
+      <div class="btn-sub">Log departure time</div>
+      <div class="spinner" id="spinnerOut"></div>
+    </button>
+  </div>
+
+  <!-- STATUS CARD -->
+  <div class="status-card" id="statusCard">
+    <div class="status-header">
+      <div class="status-avatar" id="statusAvatar">C</div>
+      <div>
+        <div class="status-name" id="statusName">—</div>
+        <div class="status-id" id="statusIdLabel">—</div>
+      </div>
+    </div>
+    <div class="status-grid">
+      <div class="stat-item">
+        <div class="stat-label">// Time In</div>
+        <div class="stat-val green" id="statTimeIn">—</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">// Time Out</div>
+        <div class="stat-val blue" id="statTimeOut">—</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">// Total Hours</div>
+        <div class="stat-val" id="statHours">—</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">// Date</div>
+        <div class="stat-val" id="statDate">—</div>
+      </div>
+    </div>
+    <div class="status-badge-row" id="statusBadges"></div>
+  </div>
+
+  <!-- TODAY'S LOG -->
+  <div class="log-section">
+    <div class="log-header">
+      <div class="log-title">// Today's Log</div>
+      <div class="log-count" id="logCount">0 entries</div>
+    </div>
+    <div id="logList">
+      <div class="log-empty">No entries yet today.</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <div class="toast-dot" id="toastDot"></div>
+  <span id="toastMsg"></span>
+</div>
+
+<script>
+  // ── CONFIG ── Replace with your actual n8n webhook URL
+  const WEBHOOK_URL = 'https://primary-production-a810.up.railway.app/webhook-test/fbfa7872-0567-446f-87b7-39b9c1f7652c';
+
+  // ── CLOCK ──
+  function updateClock() {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2,'0');
+    const mm = String(now.getMinutes()).padStart(2,'0');
+    const ss = String(now.getSeconds()).padStart(2,'0');
+    document.getElementById('hh').textContent = hh;
+    document.getElementById('mm').textContent = mm;
+    document.getElementById('ss').textContent = ss;
+
+    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    document.getElementById('dateDisplay').textContent =
+      `${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
+    document.getElementById('weekdayBadge').textContent = days[now.getDay()];
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  // ── SESSION STATE ──
+  const session = {}; // { [id]: { timeIn, name, dept } }
+  const todayLog = [];
+
+  // ── HANDLE ACTION ──
+  async function handleAction(action) {
+    const rawId = document.getElementById('internId').value.trim();
+    if (!rawId) { showToast('Enter your Intern ID first.', 'orange'); return; }
+
+    const internId = 'id' + rawId;
+    const now = new Date();
+    const timeStr = now.toTimeString().split(' ')[0].slice(0,5); // HH:MM
+    const dateStr = now.toISOString().split('T')[0];
+
+    // Button loading state
+    const btnId = action === 'time_in' ? 'btnTimeIn' : 'btnTimeOut';
+    const spinnerId = action === 'time_in' ? 'spinnerIn' : 'spinnerOut';
+    const btn = document.getElementById(btnId);
+    const spinner = document.getElementById(spinnerId);
+    btn.classList.add('loading');
+    spinner.style.display = 'block';
+
+    const payload = {
+      internId,
+      action,
+      time: timeStr,
+      date: dateStr,
+      submittedAt: now.toISOString()
+    };
+
+    try {
+      await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      // Update local session
+      if (action === 'time_in') {
+        session[internId] = { timeIn: timeStr, name: internId, dept: 'Intern' };
+        updateStatusCard(internId, timeStr, null);
+        addLogEntry(internId, timeStr, 'Time In', '#00e896');
+        showToast('Time In recorded — ' + timeStr, 'green');
+      } else {
+        const prev = session[internId] || {};
+        const timeInVal = prev.timeIn || null;
+        let hours = null;
+        if (timeInVal) {
+          const [iH, iM] = timeInVal.split(':').map(Number);
+          const [oH, oM] = timeStr.split(':').map(Number);
+          hours = ((oH * 60 + oM) - (iH * 60 + iM)) / 60;
+        }
+        updateStatusCard(internId, timeInVal, timeStr, hours);
+        addLogEntry(internId, timeStr, 'Time Out', '#3b9eff');
+        showToast('Time Out recorded — ' + timeStr, 'blue');
+      }
+
+    } catch(err) {
+      showToast('Connection error. Try again.', 'red');
+    } finally {
+      btn.classList.remove('loading');
+      spinner.style.display = 'none';
+    }
+  }
+
+  // ── STATUS CARD ──
+  function updateStatusCard(id, timeIn, timeOut, hours) {
+    const card = document.getElementById('statusCard');
+    card.classList.add('show');
+
+    const initials = id.replace('id','').slice(-2).toUpperCase();
+    const avatar = document.getElementById('statusAvatar');
+    avatar.textContent = initials;
+    avatar.style.background = 'var(--green-dim)';
+    avatar.style.color = 'var(--green)';
+
+    document.getElementById('statusName').textContent = 'Intern ' + id;
+    document.getElementById('statusIdLabel').textContent = id;
+    document.getElementById('statTimeIn').textContent = timeIn || '—';
+    document.getElementById('statTimeOut').textContent = timeOut || '—';
+
+    const hoursEl = document.getElementById('statHours');
+    if (hours !== null && hours !== undefined) {
+      hoursEl.textContent = hours.toFixed(2) + 'h';
+      hoursEl.className = 'stat-val ' + (hours > 8 ? 'orange' : 'green');
+    } else {
+      hoursEl.textContent = '—';
+      hoursEl.className = 'stat-val';
+    }
+
+    const now = new Date();
+    document.getElementById('statDate').textContent =
+      now.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+
+    // Badges
+    const badges = document.getElementById('statusBadges');
+    badges.innerHTML = '';
+
+    if (timeIn) {
+      const [h] = timeIn.split(':').map(Number);
+      const isLate = h >= 9;
+      badges.innerHTML += `<span class="badge ${isLate ? 'badge-orange' : 'badge-green'}">
+        ${isLate ? '⚠ Late' : '✓ On Time'}
+      </span>`;
+    }
+    if (timeOut) badges.innerHTML += `<span class="badge badge-blue">✓ Clocked Out</span>`;
+    if (hours !== null && hours !== undefined && hours > 8)
+      badges.innerHTML += `<span class="badge badge-orange">+${(hours-8).toFixed(2)}h Overtime</span>`;
+  }
+
+  // ── LOG ENTRY ──
+  function addLogEntry(id, time, label, color) {
+    todayLog.unshift({ id, time, label, color });
+
+    const list = document.getElementById('logList');
+    const countEl = document.getElementById('logCount');
+    countEl.textContent = todayLog.length + ' entr' + (todayLog.length === 1 ? 'y' : 'ies');
+
+    const item = document.createElement('div');
+    item.className = 'log-item';
+    item.innerHTML = `
+      <div class="log-left">
+        <div class="log-dot" style="background:${color}"></div>
+        <div>
+          <div class="log-intern">${id}</div>
+          <div class="log-dept">${label}</div>
+        </div>
+      </div>
+      <div class="log-right">
+        <div class="log-time">${time}</div>
+        <div class="log-action">Today</div>
+      </div>
+    `;
+
+    if (list.querySelector('.log-empty')) list.innerHTML = '';
+    list.prepend(item);
+  }
+
+  // ── TOAST ──
+  function showToast(msg, type = 'green') {
+    const toast = document.getElementById('toast');
+    const dot = document.getElementById('toastDot');
+    const msgEl = document.getElementById('toastMsg');
+    const colors = { green: '#00e896', blue: '#3b9eff', orange: '#ff8c42', red: '#ff4d6a' };
+    dot.style.background = colors[type] || colors.green;
+    msgEl.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 3500);
+  }
+
+  // ── ENTER KEY SUPPORT ──
+  document.getElementById('internId').addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleAction('time_in');
+  });
+</script>
+</body>
+</html>
